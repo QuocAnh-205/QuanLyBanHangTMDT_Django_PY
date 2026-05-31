@@ -5,28 +5,98 @@
 
 {% block content %}
 
-    <div class="container">
+    <div class="container" style="margin-top: 30px; margin-bottom: 50px;">
         {% load static %}
         <div class="row">
             <div class="col-sm-8">
                 <img class="img-fluid" src="{% static 'images/django.png' %}" alt="" width="100%">
             </div>
             <div class="col-sm-4">
-                {% if message %}
-                    <h1 style="color: red">{{message}}</h1>
-                {% endif %}
-                <form action="" method="post" class="needs-validation" novalidate>
-                    {% csrf_token %}
-                    {% for field in form %}
-                        <div class="form-group {% if field.errors %} is-invalid {% else %} is-valid {% endif %}">
-                            {{ field.label }}
-                            {{ field }}
+                <h2 class="title text-center" style="margin-bottom: 20px; color: #FE980F;">Đăng Nhập</h2>
+                
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}" role="alert">
+                            {{ message }}
                         </div>
                     {% endfor %}
-                    <input type="submit" class="btn btn-success btn-lg btn-block" value="Sign In">
+                {% endif %}
+
+                <div id="login-alert" class="alert alert-danger" style="display: none;"></div>
+                <div id="login-success" class="alert alert-success" style="display: none;"></div>
+
+                <form id="login-form" action="" method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="form-group">
+                            <label style="font-weight: 600; color: #333;">{{ field.label }}</label>
+                            {{ field }}
+                            <div class="invalid-feedback" id="error-{{ field.name }}" style="color: red; display: none; font-size: 13px; margin-top: 5px;"></div>
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-success btn-lg btn-block" style="background-color: #FE980F; border-color: #FE980F; color: white; margin-top: 15px; font-weight: bold;">Đăng Nhập</button>
                 </form>
-                <p>Bạn chưa có tài khoản <a href="{% url 'register_user' %}">Bấm vào đây để tạo tạo tài khoản mới</a></p>
+                
+                <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <p style="font-size: 14px;">Bạn chưa có tài khoản? <a href="{% url 'register_user' %}" style="color: #FE980F; font-weight: bold;">Tạo tài khoản mới</a></p>
+                    <p style="font-size: 14px;"><a href="{% url 'forgot_password' %}" style="color: #FE980F; font-weight: bold;"><i class="fa fa-key"></i> Quên mật khẩu?</a></p>
+                </div>
             </div>
         </div>
-</div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Ẩn hiện mật khẩu
+            $('input[type="password"]').each(function() {
+                var $input = $(this);
+                $input.wrap('<div class="password-wrapper" style="position: relative;"></div>');
+                var $toggle = $('<span class="password-toggle-btn" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; z-index: 10; color: #666;"><i class="fa fa-eye"></i></span>');
+                $input.after($toggle);
+                
+                $toggle.click(function() {
+                    var isPassword = $input.attr('type') === 'password';
+                    $input.attr('type', isPassword ? 'text' : 'password');
+                    $(this).find('i').toggleClass('fa-eye fa-eye-slash');
+                });
+            });
+
+            // AJAX submit login form
+            $("#login-form").submit(function(e) {
+                e.preventDefault();
+                $("#login-alert").hide().text("");
+                $(".invalid-feedback").hide().text("");
+                
+                var form = $(this);
+                $.ajax({
+                    type: "POST",
+                    url: form.attr('action'),
+                    data: form.serialize(),
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    },
+                    success: function(data) {
+                        $("#login-success").text("Đăng nhập thành công! Đang chuyển hướng...").show();
+                        setTimeout(function() {
+                            window.location.href = data.redirect;
+                        }, 800);
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 400) {
+                            var response = xhr.responseJSON;
+                            if (response.errors) {
+                                for (var key in response.errors) {
+                                    $("#error-" + key).text(response.errors[key]).show();
+                                }
+                            } else if (response.message) {
+                                $("#login-alert").text(response.message).show();
+                            }
+                        } else {
+                            $("#login-alert").text("Username hoặc Password không đúng.").show();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
 {% endblock content %}

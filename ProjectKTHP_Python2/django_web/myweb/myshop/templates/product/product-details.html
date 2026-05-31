@@ -10,58 +10,191 @@
 
 {% block content %}
 <style>
+	/* --- PREMIUM PRODUCT DETAILS STYLING --- */
+	.view-product {
+		background: white !important;
+		border-radius: 20px !important;
+		border: 1px solid rgba(0, 0, 0, 0.05) !important;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03) !important;
+		padding: 20px !important;
+		overflow: hidden !important;
+		text-align: center !important;
+		margin-bottom: 25px !important;
+	}
+
 	.view-product img {
-		border: 1px solid #87CEEB;
-		height: auto;
-		width: 70%;
+		max-height: 380px !important;
+		width: auto !important;
+		object-fit: contain !important;
+		margin: 0 auto !important;
+		transition: transform 0.4s ease !important;
+	}
+	
+	.view-product:hover img {
+		transform: scale(1.03);
 	}
 
 	.product-img-responsive img {
 		display: block;
 		margin-left: auto;
 		margin-right: auto;
-		width: 60%;
+		max-height: 100px !important;
+		object-fit: contain !important;
+	}
+
+	#similar-product {
+		background: white !important;
+		border-radius: 16px !important;
+		border: 1px solid rgba(0, 0, 0, 0.04) !important;
+		box-shadow: 0 8px 25px rgba(0, 0, 0, 0.02) !important;
+		padding: 15px 30px !important;
+		margin-top: 20px !important;
 	}
 
 	#similar-product .carousel-inner .item {
-		padding-left: 100px;
+		padding-left: 0 !important;
+		text-align: center !important;
 	}
-
-	body {
-		background-color: #E6F0FA;
-		color: #00008B;
-	}
-
-	h1, h2, h3, p, a, span, td, th, label {
-		color: #00008B !important;
-	}
-
-	.btn, .cart, .nav-tabs > li > a {
-		background-color: #87CEEB;
-		color: #00008B !important;
-	}
-
-	.carousel-indicators li {
-		background-color: #87CEEB;
-	}
-
-	.table-striped > tbody > tr:nth-child(odd) > td,
-	.table-striped > tbody > tr:nth-child(odd) > th {
-		background-color: #ADD8E6;
-	}
-
+	
+	/* Breadcrumb Styling */
 	.breadcrumb {
-		background-color: #B0E0E6;
+		background-color: transparent !important;
+		padding: 12px 0 !important;
+		margin-bottom: 25px !important;
+		border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+		border-radius: 0 !important;
+	}
+	
+	.breadcrumb-item a {
+		color: #718096 !important;
+		font-weight: 500 !important;
+		transition: color 0.3s ease !important;
+	}
+	
+	.breadcrumb-item a:hover {
+		color: #FE980F !important;
+	}
+	
+	.breadcrumb-item.active {
+		color: #1A202C !important;
+		font-weight: 600 !important;
+	}
+	
+	/* Product Information Panel */
+	.product-information {
+		background: white !important;
+		border-radius: 24px !important;
+		border: 1px solid rgba(0, 0, 0, 0.05) !important;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03) !important;
+		padding: 40px !important;
+		position: relative !important;
+	}
+	
+	.product-information h2 {
+		color: #1A202C !important;
+		font-size: 28px !important;
+		font-weight: 700 !important;
+		margin-top: 10px !important;
+		margin-bottom: 10px !important;
+	}
+	
+	.product-information span span {
+		font-size: 32px !important;
+		font-weight: 800 !important;
+		color: #FE980F !important;
+	}
+	
+	.product-information span label {
+		font-weight: 600 !important;
+		color: #4A5568 !important;
+	}
+	
+	.product-information span input {
+		border-radius: 8px !important;
+		border: 1px solid rgba(0, 0, 0, 0.1) !important;
+		padding: 8px 12px !important;
+		text-align: center !important;
+		width: 60px !important;
+		font-weight: 600 !important;
+		margin-right: 10px !important;
 	}
 
-	.newarrival {
-		background-color: #87CEEB;
+	.btn-fefault.cart {
+		background: linear-gradient(135deg, #FE980F 0%, #FFB043 100%) !important;
+		border: none !important;
+		color: white !important;
+		border-radius: 30px !important;
+		padding: 12px 28px !important;
+		font-weight: 600 !important;
+		box-shadow: 0 4px 15px rgba(254, 152, 15, 0.25) !important;
+		transition: all 0.3s ease !important;
 	}
-
-	#alert-add-product h1 {
-		color: #00008B;
+	
+	.btn-fefault.cart:hover {
+		background: linear-gradient(135deg, #E6850B 0%, #FE980F 100%) !important;
+		box-shadow: 0 8px 25px rgba(254, 152, 15, 0.4) !important;
+		transform: translateY(-2px) !important;
 	}
-
+	
+	/* Tabs Styling */
+	.shop-details-tab {
+		border: none !important;
+		margin-top: 40px !important;
+	}
+	
+	.nav-tabs {
+		border-bottom: 2px solid rgba(0, 0, 0, 0.05) !important;
+		display: flex !important;
+		gap: 5px !important;
+	}
+	
+	.nav-tabs > li > a {
+		border: none !important;
+		background: transparent !important;
+		color: #718096 !important;
+		font-weight: 600 !important;
+		border-radius: 12px 12px 0 0 !important;
+		padding: 12px 24px !important;
+		transition: all 0.3s ease !important;
+	}
+	
+	.nav-tabs > li.active > a, 
+	.nav-tabs > li > a:hover {
+		color: #FE980F !important;
+		background: white !important;
+		border-bottom: 3px solid #FE980F !important;
+	}
+	
+	.tab-content {
+		background: white !important;
+		border-radius: 0 0 20px 20px !important;
+		border: 1px solid rgba(0, 0, 0, 0.05) !important;
+		border-top: none !important;
+		padding: 30px !important;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02) !important;
+	}
+	
+	/* Tables Styling */
+	.table-striped {
+		margin-bottom: 0 !important;
+	}
+	
+	.table-striped > tbody > tr > td {
+		border-top: 1px solid rgba(0, 0, 0, 0.04) !important;
+		padding: 14px 18px !important;
+		font-size: 15px !important;
+	}
+	
+	.table-striped > tbody > tr > td:first-child {
+		font-weight: 600 !important;
+		color: #4A5568 !important;
+		width: 30% !important;
+	}
+	
+	.table-striped > tbody > tr:nth-child(odd) > td {
+		background-color: #FAF9F8 !important;
+	}
+	
 	/* Star Rating Styles */
 	.star-rating {
 		direction: rtl;
@@ -73,10 +206,11 @@
 	}
 
 	.star-rating label {
-		color: #bbb;
-		font-size: 30px;
-		padding: 0 5px;
+		color: #cbd5e0;
+		font-size: 32px;
+		padding: 0 4px;
 		cursor: pointer;
+		transition: color 0.2s ease;
 	}
 
 	.star-rating label:hover,
@@ -85,27 +219,19 @@
 		color: #FFD700;
 	}
 
-	.review-form {
-		margin-top: 20px;
-	}
-
-	.review-form textarea {
-		width: 100%;
-		height: 100px;
-		margin-bottom: 10px;
-	}
-
-	.review-list {
-		margin-top: 20px;
-	}
-
+	/* Review Items */
 	.review-item {
-		border-bottom: 1px solid #87CEEB;
-		padding: 10px 0;
+		border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+		padding: 20px 0 !important;
 	}
-
-	.review-item p {
-		margin: 5px 0;
+	
+	.review-item:last-child {
+		border-bottom: none !important;
+	}
+	
+	.review-item strong {
+		color: #1A202C !important;
+		font-size: 15px !important;
 	}
 </style>
 

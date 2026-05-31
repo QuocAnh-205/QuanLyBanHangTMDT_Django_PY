@@ -89,6 +89,47 @@ class LoginForm(forms.Form):
         widget=forms.PasswordInput(attrs={'class': 'form-control'})
         )
 
+class ForgotPasswordForm(forms.Form):
+    username = forms.CharField(
+        label="Tên Đăng Nhập",
+        max_length=50,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    email = forms.EmailField(
+        label="Email liên kết",
+        max_length=50,
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    new_password = forms.CharField(
+        label="Mật Khẩu Mới",
+        max_length=20,
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+    confirm_new_password = forms.CharField(
+        label="Nhập Lại Mật Khẩu Mới",
+        max_length=20,
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get('username')
+        email = cleaned_data.get('email')
+        new_password = cleaned_data.get('new_password')
+        confirm_new_password = cleaned_data.get('confirm_new_password')
+
+        if username and email:
+            try:
+                User.objects.get(username=username, email=email)
+            except User.DoesNotExist:
+                raise ValidationError("Tên đăng nhập hoặc email không khớp với tài khoản nào.")
+
+        if new_password and confirm_new_password:
+            if new_password != confirm_new_password:
+                self.add_error('confirm_new_password', 'Mật khẩu mới và nhập lại mật khẩu không khớp.')
+
+        return cleaned_data
+
 class ReviewForm(forms.ModelForm):
     class Meta:
         model = Review

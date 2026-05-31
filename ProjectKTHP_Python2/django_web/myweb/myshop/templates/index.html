@@ -10,16 +10,51 @@
 
 	<script>
 		$(document).ready(function(){
-		  $("#mouse").mouseenter(function(){
-			$(this).css("color", "red");
-			$(this).css("background-color", "lightgrey");
-		  });
-		  $("#mouse").mouseleave(function(){
-			$(this).css("color", "black");
-			$(this).css("background-color", "white");
-		  });
+			$("#mouse").mouseenter(function(){
+				$(this).css("color", "red");
+				$(this).css("background-color", "lightgrey");
+			});
+			$("#mouse").mouseleave(function(){
+				$(this).css("color", "black");
+				$(this).css("background-color", "white");
+			});
+
+			// Cập nhật nhãn giá tiền thực tế khi đang kéo slider
+			$("#sl2").on("slide", function(slideEvt) {
+				if (slideEvt && slideEvt.value) {
+					var values = slideEvt.value;
+					$("#min-price-lbl").text(values[0].toLocaleString() + " VND");
+					$("#max-price-lbl").text(values[1].toLocaleString() + " VND");
+				}
+			});
+
+			// Kích hoạt lọc sản phẩm bằng AJAX khi người dùng thả kéo
+			$("#sl2").on("slideStop", function(slideEvt) {
+				if (slideEvt && slideEvt.value) {
+					var values = slideEvt.value;
+					var minVal = values[0];
+					var maxVal = values[1];
+					
+					$.ajax({
+						type: "GET",
+						url: "{% url 'index' %}",
+						data: {
+							min_price: minVal,
+							max_price: maxVal
+						},
+						headers: {
+							"X-Requested-With": "XMLHttpRequest"
+						},
+						success: function(data) {
+							$(".features_items > div").html(data.html);
+						},
+						error: function(xhr) {
+							console.error("Lỗi lọc sản phẩm:", xhr);
+						}
+					});
+				}
+			});
 		});
-		
 	</script>
 
 	<section id="slider"><!--slider-->
@@ -28,35 +63,87 @@
 				<div class="col-sm-12">
 					<div id="slider-carousel" class="carousel slide" data-ride="carousel">
 						<ol class="carousel-indicators">
-							{% for promotion in products_promotion %}
-								<li data-target="#slider-carousel" data-slide-to="{{forloop.counter0}}" {%if forloop.counter0 == 0 %}class="active"{% endif %}></li>								
-							{% endfor %}
+							{% if products_promotion %}
+								{% for promotion in products_promotion %}
+									<li data-target="#slider-carousel" data-slide-to="{{forloop.counter0}}" {%if forloop.counter0 == 0 %}class="active"{% endif %}></li>								
+								{% endfor %}
+							{% else %}
+								<li data-target="#slider-carousel" data-slide-to="0" class="active"></li>
+								<li data-target="#slider-carousel" data-slide-to="1"></li>
+								<li data-target="#slider-carousel" data-slide-to="2"></li>
+							{% endif %}
 						</ol>
 						
 						<div class="carousel-inner">
-							{% for promotion in products_promotion %}
-								<div class="item{%if forloop.counter0 == 0 %} active{% endif %}">
-									<div class="col-sm-6">
-										<h1><span>Django</span>-Online Shop</h1>
-										<h2>{{ promotion.product.name }}</h2>
-										<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. </p>
-										<button type="button" class="btn btn-default get">Get it now</button>
+							{% if products_promotion %}
+								{% for promotion in products_promotion %}
+									<div class="item{%if forloop.counter0 == 0 %} active{% endif %}">
+										<div class="col-sm-6">
+											<h1><span>Django</span>-Online Shop</h1>
+											<h2>{{ promotion.product.name }}</h2>
+											<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. </p>
+											<a href="{% url 'view_product' product_id=promotion.product.id %}" class="btn btn-default get">Mua ngay</a>
+										</div>
+										<div class="col-sm-6">
+											<a href="{% url 'view_product' product_id=promotion.product.id %}">
+												{% if promotion.product.image|first in 'product_images' %}
+													<img src="{% static promotion.product.image %}" class="product-img-responsive" alt="" width="80%"/>		
+												{% else %}	
+													<img src="{{ promotion.product.image }}" class="product-img-responsive" alt="" width="80%"/>
+												{% endif %}
+												<div id="main">
+													<div class="pricing">Giảm {{promotion.product.id|get_product_discount}} %</div>
+												</div>
+											</a>
+										</div>
+									</div>
+								{% endfor %}
+							{% else %}
+								<!-- Slide 1: 120Hz ProMotion -->
+								<div class="item active">
+									<div class="col-sm-6" style="padding-top: 30px;">
+										<h1><span>E-SHOPPER</span> - 120Hz ProMotion</h1>
+										<h2>Siêu Phẩm iPhone 13 Pro Max</h2>
+										<p style="font-size: 15px; line-height: 1.6; color: #718096;">Trải nghiệm độ mượt mà đỉnh cao chưa từng có. Công nghệ màn hình Super Retina XDR với tần số quét thích ứng linh hoạt từ 10Hz đến 120Hz tự động điều chỉnh theo tác vụ của bạn.</p>
+										<a href="/product/1" class="btn btn-default get" style="margin-top: 15px;">Mua ngay</a>
 									</div>
 									<div class="col-sm-6">
-										<a href="{% url 'view_product' product_id=promotion.product.id %}">
-											{% if promotion.product.image|first in 'product_images' %}
-												<img src="{% static promotion.product.image %}" class="product-img-responsive" alt="" width="80%"/>		
-											{% else %}	
-												<img src="{{ promotion.product.image }}" class="product-img-responsive" alt="" width="80%"/>
-											{% endif %}
-											<div id="main">
-												<div class="pricing">Giảm {{promotion.product.id|get_product_discount}} %</div>
-											</div>
-
+										<a href="/product/1">
+											<img src="{% static 'images/product-images/iphone-13-pro-max-slider-promotion-1020x570.jpeg' %}" class="product-img-responsive" alt="iPhone 13 Pro Max 120Hz" width="100%" style="border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);"/>
 										</a>
 									</div>
 								</div>
-							{% endfor %}
+								
+								<!-- Slide 2: Tốc độ 5G Siêu Tốc -->
+								<div class="item">
+									<div class="col-sm-6" style="padding-top: 30px;">
+										<h1><span>E-SHOPPER</span> - Kết Nối 5G Tiên Phong</h1>
+										<h2>Tốc Độ Cực Nhanh, Không Độ Trễ</h2>
+										<p style="font-size: 15px; line-height: 1.6; color: #718096;">Trải nghiệm tốc độ mạng tương lai. Tải phim dung lượng lớn chỉ trong vài giây, xem livestream sắc nét không bị gián đoạn và chiến game trực tuyến mượt mà nhất với sức mạnh kết nối 5G.</p>
+										<a href="/product/1" class="btn btn-default get" style="margin-top: 15px;">Khám phá ngay</a>
+									</div>
+									<div class="col-sm-6">
+										<a href="/product/1">
+											<img src="{% static 'images/product-images/iphone-13-pro-max-slider-5g-1020x570.jpeg' %}" class="product-img-responsive" alt="iPhone 13 Pro Max 5G" width="100%" style="border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);"/>
+										</a>
+									</div>
+								</div>
+								
+								<!-- Slide 3: Hiệu năng A15 Bionic -->
+								<div class="item">
+									<div class="col-sm-6" style="padding-top: 30px;">
+										<h1><span>E-SHOPPER</span> - Sức Mạch A15 Bionic</h1>
+										<h2>Hiệu Năng Vô Địch Thiên Hạ</h2>
+										<p style="font-size: 15px; line-height: 1.6; color: #718096;">Sở hữu bộ vi xử lý di động mạnh mẽ nhất thế giới. Chip A15 Bionic xử lý mượt mà mọi ứng dụng đồ họa nặng nhất, cải tiến camera thông minh và tiết kiệm pin tối đa.</p>
+										<a href="/product/1" class="btn btn-default get" style="margin-top: 15px;">Tìm hiểu thêm</a>
+									</div>
+									<div class="col-sm-6">
+										<a href="/product/1">
+											<img src="{% static 'images/product-images/iphone-13-pro-max-slider-ios15-1020x570.jpeg' %}" class="product-img-responsive" alt="iPhone 13 Pro Max A15" width="100%" style="border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);"/>
+										</a>
+									</div>
+								</div>
+							{% endif %}
 						</div>
 						
 						<a href="#slider-carousel" class="left control-carousel hidden-xs" data-slide="prev">
@@ -83,8 +170,8 @@
 						<div class="price-range"><!--price-range-->
 							<h2>Price Range</h2>
 							<div class="well text-center">
-								<input type="text" class="span2" value="" data-slider-min="{{minimum_price}}" data-slider-max="{{maximum_price}}" data-slider-step="100000" data-slider-value="[{{minimum_price}}/2,{{maximum_price}}/2]" id="sl2" ><br />
-								<b class="pull-left">{{minimum_price|intcomma}}</b> <b class="pull-right">{{maximum_price|intcomma}}</b>
+								<input type="text" class="span2" value="" data-slider-min="{{minimum_price}}" data-slider-max="{{maximum_price}}" data-slider-step="100000" data-slider-value="[{{minimum_price}},{{maximum_price}}]" id="sl2" ><br />
+								<b class="pull-left" id="min-price-lbl">{{minimum_price|intcomma}} VND</b> <b class="pull-right" id="max-price-lbl">{{maximum_price|intcomma}} VND</b>
 							</div>
 						</div><!--/price-range-->
 						

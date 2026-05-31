@@ -19,8 +19,26 @@ from myshop.templatetags.custom_filter import get_price_sale, get_price
 def index(request): # View all product
     categories = Category.objects.filter(category_parent__isnull=True)
     products = Product.objects.all()
-    minimum_price = products.aggregate(Min('price'))
-    maximum_price = products.aggregate(Max('price'))
+    
+    # Tính toán khoảng giá thấp nhất và cao nhất trên hệ thống
+    min_price_agg = products.aggregate(Min('price'))['price__min'] or 0
+    max_price_agg = products.aggregate(Max('price'))['price__max'] or 0
+
+    # Lấy các tham số lọc giá từ request
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    if min_price and max_price:
+        products = products.filter(price__gte=min_price, price__lte=max_price)
+
+    # Nếu là yêu cầu AJAX thì chỉ trả về phần danh sách sản phẩm đã được lọc
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        html = render_to_string(
+            template_name='product/product_list_partial.html',
+            context={'products': products, 'user': request.user},
+            request=request
+        )
+        return JsonResponse({'html': html})
+
     products_promotion = Promotion.objects.filter(
             start_date__lte=now(),# ngày bắt dầu kmai < ngày hiện tại (trước ngày hiện tại)
             end_date__gt=now() # ngày kết thúc kmai > ngày hiện tại
@@ -31,8 +49,8 @@ def index(request): # View all product
         context={
             'categories': categories,
             'products': products,
-            'minimum_price': minimum_price['price__min'],
-            'maximum_price': maximum_price['price__max'],
+            'minimum_price': min_price_agg,
+            'maximum_price': max_price_agg,
             'products_promotion': products_promotion,
         }
     )
@@ -63,14 +81,27 @@ def brands(request, category_name): # View list product of a brand
     )
 
 
-@login_required(login_url='/user/login')
 def view_product(request, product_id): # View detail product when user click
-    product_data = ''
-    fields = []
     try:
         product_data = Product.objects.get(id=product_id)
+        reviews = product_data.reviews.select_related('user').order_by('-created_at')
+        
+        if request.method == 'POST':
+            if not request.user.is_authenticated:
+                return redirect(f'/user/login?next=/product/{product_id}')
+            form = ReviewForm(request.POST)
+            if form.is_valid():
+                review = form.save(commit=False)
+                review.product = product_data
+                review.user = request.user
+                review.save()
+                return redirect('view_product', product_id=product_id)
+        else:
+            form = ReviewForm()
+
         product_detail = product_data.detail
         fields_data = product_detail._meta.get_fields()
+        fields = []
         for field in fields_data:
             if field.name == 'product' or field.name == 'id' or field.name == 'name':
                 continue
@@ -78,20 +109,56 @@ def view_product(request, product_id): # View detail product when user click
                 fields.append(field.name)
         info = f'Cấu hình chi tiết của {product_data}'
         return render(
-        request=request,
-        template_name='product/product-details.html',
-        context={
-            'info': info,
-            'product_data': product_data,
-            'fields': fields,
-            'product_detail': product_detail,
-        }             
+            request=request,
+            template_name='product/product-details.html',
+            context={
+                'info': info,
+                'product_data': product_data,
+                'fields': fields,
+                'product_detail': product_detail,
+                'reviews': reviews,
+                'review_form': form,
+            }             
         )
     except Product.DoesNotExist:
         return render(
             request=request,
             template_name='404.html',     
         )
+
+def product_detail_api(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+        detail = product.detail
+        
+        # Get labels and values for specifications
+        specs = []
+        fields_data = detail._meta.get_fields()
+        for field in fields_data:
+            if field.name in ['product', 'id', 'name']:
+                continue
+            val = getattr(detail, field.name, '')
+            label = field.verbose_name or field.name
+            specs.append({
+                'label': label,
+                'value': val
+            })
+
+        data = {
+            'id': product.id,
+            'name': product.name,
+            'price': product.price,
+            'stock_quantity': product.stock_quantity,
+            'image': product.image,
+            'category': product.category.name,
+            'brand': product.brand.name,
+            'status': product.status,
+            'specs': specs
+        }
+        return JsonResponse(data, status=200)
+    except Product.DoesNotExist:
+        return JsonResponse({'error': 'Product not found'}, status=404)
+
 
 
 @login_required(login_url='/user/login')
@@ -221,50 +288,91 @@ def show_cart(request):
 
 @login_required(login_url='/user/login')
 def checkout(request):
-    orderdetail=[]
+    orderdetail = []
     logged_user = request.user
-    order = Order.objects.get(user=logged_user, status=0)
-    orderdetail = order.orderdetail_set.all()
+    try:
+        order = Order.objects.get(user=logged_user, status=0)
+        orderdetail = order.orderdetail_set.all()
+    except Order.DoesNotExist:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'message': 'Không tìm thấy giỏ hàng hoạt động.'}, status=400)
+        return redirect('show_cart')
+
+    total_amount = sum([item.amount for item in orderdetail])
+
     if request.method == "POST":
-        phone=request.POST['phone']
-        address=request.POST['address']
+        phone = request.POST.get('phone', '')
+        address = request.POST.get('address', '')
+        fullname = request.POST.get('fullname', '')
+        payment_method = request.POST.get('payment_method', 'COD')
+        notes = request.POST.get('notes', '')
+
+        # Save shipping details consolidated in standard fields
         order.phone = phone
-        order.address = address
-        order.total_amount = sum([item.amount for item in orderdetail])
-        order.status = 1 # Đơn hàng thành công
+        order.address = f"Họ tên: {fullname} | Địa chỉ: {address} | HTTT: {payment_method} | Ghi chú: {notes}"
+        order.total_amount = total_amount
+        order.status = 1  # Đơn hàng thành công
         order.save()
+
+        # Cập nhật số lượng tồn kho của sản phẩm
         for od_detail in orderdetail:
             od_detail.product.stock_quantity -= od_detail.quantity
             od_detail.product.save()
-        # embed send mail
-        # html_template = 'cart/message.html'
-        # context={
-        #     'data_orderdetail': orderdetail,
-        #     'total_amount': order.total_amount,
-        # }
-        # html_template = render_to_string(html_template, {'context':context})
 
-        from_email = settings.EMAIL_HOST_USER
-        subject = 'Thanks for your checkout at shop Django'
-        message = f'''
-        Hi {logged_user.username},
-        Thanks for your check out.
-        Total amount: {intcomma(order.total_amount)} VND
+        # Gửi email xác nhận mua hàng (fail_silently=True để tránh crash hệ thống nếu SMTP không cấu hình đúng)
+        try:
+            from_email = settings.EMAIL_HOST_USER
+            subject = 'Xác nhận đơn hàng thành công từ MyShop'
+            message = f'''
+            Xin chào {fullname or logged_user.username},
+            Cảm ơn bạn đã mua sắm tại MyShop! Đơn hàng của bạn đã được thanh toán và xử lý thành công.
 
-        Thanks
-        Shop django
-        '''
-        recipient_list = [logged_user.email]
-        send_mail(subject, message, from_email, recipient_list)
-        
+            Chi tiết đơn hàng:
+            - Mã đơn hàng: DH{order.id}
+            - Tổng giá trị thanh toán: {intcomma(total_amount)} VND
+            - Phương thức thanh toán: {payment_method}
+            - Số điện thoại nhận hàng: {phone}
+            - Địa chỉ giao hàng: {address}
+
+            Đơn hàng sẽ nhanh chóng được chuẩn bị và bàn giao cho đơn vị vận chuyển.
+            Chúc bạn một ngày tốt lành!
+
+            Trân trọng,
+            Đội ngũ MyShop
+            '''
+            recipient_list = [logged_user.email]
+            send_mail(subject, message, from_email, recipient_list, fail_silently=True)
+        except Exception as e:
+            print("Mail sending error:", e)
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'message': 'Đơn hàng đã được thanh toán thành công!',
+                'redirect': '/',
+                'order_id': order.id,
+                'total_amount': total_amount
+            }, status=200)
+            
         return redirect('index')
+
+    # Tạo đường dẫn VietQR để quét thanh toán động
+    bank_id = "MB"
+    account_no = "123456789"
+    account_name = "NGUYEN QUOC ANH"
+    qr_url = f"https://img.vietqr.io/image/{bank_id}-{account_no}-compact2.png?amount={total_amount}&addInfo=DH{order.id}&accountName={account_name.replace(' ', '%20')}"
 
     return render(
         request=request,
         template_name='cart/checkout.html',
         context={
             'data_orderdetail': orderdetail,
-            'total_amount': order.total_amount,
+            'total_amount': total_amount,
+            'qr_url': qr_url,
+            'bank_name': 'Ngân hàng Quân Đội (MB Bank)',
+            'account_no': account_no,
+            'account_name': account_name,
+            'order_code': f"DH{order.id}"
         }
     )
 
@@ -292,26 +400,3 @@ def product_detail(request, product_id):
         'reviews': reviews,
         'review_form': form,
     })
-
-def checkout(request):
-    if request.method == 'POST':
-        # Lấy thông tin từ form (giả sử bạn có form)
-        name = request.POST.get('name')
-        email = request.POST.get('email')
-        # ... các trường khác nếu có
-
-        # Gửi email xác nhận
-        subject = 'Xác nhận đơn hàng từ E-Shopper'
-        message = f'Cảm ơn {name}, đơn hàng của bạn đã được tiếp nhận!'
-        from_email = settings.EMAIL_HOST_USER
-        recipient_list = [email]
-
-        try:
-            send_mail(subject, message, from_email, recipient_list, fail_silently=False)
-            messages.success(request, 'Đơn hàng đã được gửi thành công!')
-        except Exception as e:
-            messages.error(request, f'Lỗi gửi email: {str(e)}')
-            return render(request, 'shop/checkout.html', {'error': str(e)})
-
-        return redirect('order_confirmation')
-    return render(request, 'shop/checkout.html')

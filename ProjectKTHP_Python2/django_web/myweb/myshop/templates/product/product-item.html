@@ -20,11 +20,17 @@
                     <h2>{{product.price|intcomma}} VND</h2>
                 {% endif %}
                 <p>{{product.name}}</p>
-                <a data-href="{% if user.is_authenticated %} {% url 'add_product_to_cart' product_id=product.id %} {% else %} {% url 'login_user' %} {% endif %}"
-                    class="btn btn-default add-to-cart"
-                    data-logged-user="{{ user.is_authenticated }}">
-                    <i class="fa fa-shopping-cart"></i>Add to cart
-                </a>
+                <div style="display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 15px;">
+                    <a data-href="{% if user.is_authenticated %} {% url 'add_product_to_cart' product_id=product.id %} {% else %} {% url 'login_user' %} {% endif %}"
+                        class="btn btn-default add-to-cart"
+                        data-logged-user="{{ user.is_authenticated }}"
+                        style="margin: 0 !important; padding: 8px 12px !important; font-size: 13px !important; display: inline-flex !important; align-items: center !important; gap: 4px !important;">
+                        <i class="fa fa-shopping-cart"></i> Add to cart
+                    </a>
+                    <a href="#" class="btn btn-default quick-view-btn" data-product-id="{{ product.id }}" style="margin: 0 !important; padding: 8px 12px !important; font-size: 13px !important; background: #FFF8F0 !important; border: 1px solid rgba(254, 152, 15, 0.2) !important; color: #FE980F !important; transition: all 0.3s ease !important; display: inline-flex !important; align-items: center !important; gap: 4px !important; border-radius: 30px !important;">
+                        <i class="fa fa-eye"></i> Chi tiết
+                    </a>
+                </div>
             </div>
 
             {% if product.id|check_product_sale %} <!--promotion-->

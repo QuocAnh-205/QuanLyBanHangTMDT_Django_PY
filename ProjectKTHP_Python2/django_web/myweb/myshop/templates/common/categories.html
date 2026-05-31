@@ -1,50 +1,42 @@
-<h2>Category</h2>
+<h2>Danh Mục</h2>
 
-<div class="panel-group category-products" id="accordian"><!--category-productsr-->
-    <ul>
-        {% for category in categories %}
-            <div class="panel panel-default">
-                <div class="panel-heading"> <!--Navbar-->
-                    <h4 class="panel-title">
-                        <a data-toggle="collapse" data-parent="#accordian" href="#category-{{category.pk}}">
-                            {% if category.category_set.exists %}
-                                <i class="{{category.icon}}"></i>
-                                <span class="badge pull-right">
-                                    <i class="fa fa-plus"></i>
-                                </span>
+<div class="panel-group category-products" id="accordian">
+    {% for category in categories %}
+        <div class="panel panel-default" style="border: none !important; background: transparent !important; margin-bottom: 5px !important;">
+            <div class="panel-heading" style="background: transparent !important; border: none !important; padding: 0 !important;">
+                <h4 class="panel-title" style="margin: 0 !important;">
+                    {% if category.category_set.exists %}
+                        <a data-toggle="collapse" data-parent="#accordian" href="#category-{{category.pk}}" class="collapsed" style="color: #4A5568 !important; font-size: 14px !important; font-weight: 600 !important; padding: 12px 16px !important; display: flex !important; justify-content: space-between !important; align-items: center !important; border-radius: 10px !important; transition: all 0.3s ease !important; text-decoration: none !important;">
+                            <span style="display: flex; align-items: center; gap: 10px;">
+                                <i class="{{category.icon}}" style="font-size: 16px; width: 22px; text-align: center; color: #FE980F;"></i>
                                 {{category.description}}
-                            {% else %}
-                                <a href="{% url 'brands' category_name=category.name %}">
-                                    <i class="{{category.icon}}"></i>
-                                <!-- <a href="?category={{category.name}}" class="{% if category.name == category_display.name %}filtered{% endif %}"> -->
-                                    {{category.description}}
-                                </a>
-                            {% endif %}
+                            </span>
+                            <i class="fa fa-plus pull-right" style="font-size: 11px; color: #a0aec0;"></i>
                         </a>
-                    </h4>
-                </div>
-    
-                {% if category.category_set.exists %}
-                    <div id="category-{{category.id}}" class="panel-collapse {% if category.name == category_display.category_parent.name %} in {% else %} collapse {% endif %}">
-                        <div class="panel-body">
-                            <ul>
-                                {% for category_child in category.category_set.all %}
-                                    <li class="{% if category_child.name == category_display.name %}filtered{% endif %}">
-                                        <!-- <a href="?category={{category_child.name}}"> -->
-                                        <a href="{% url 'brands' category_name=category_child.name %}">
-                                            {{category_child.description}}
-                                        </a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                {% endif %}
-                
+                    {% else %}
+                        <a href="{% url 'brands' category_name=category.name %}" style="color: #4A5568 !important; font-size: 14px !important; font-weight: 600 !important; padding: 12px 16px !important; display: flex !important; align-items: center !important; border-radius: 10px !important; transition: all 0.3s ease !important; text-decoration: none !important; gap: 10px;">
+                            <i class="{{category.icon}}" style="font-size: 16px; width: 22px; text-align: center; color: #FE980F;"></i>
+                            {{category.description}}
+                        </a>
+                    {% endif %}
+                </h4>
             </div>
-            {% endfor %}
 
-
-        </ul>
-    </div><!--/category-products-->
-
+            {% if category.category_set.exists %}
+                <div id="category-{{category.pk}}" class="panel-collapse collapse {% if category.name == category_display.category_parent.name %} in {% endif %}" style="border: none !important; background: transparent !important;">
+                    <div class="panel-body" style="padding: 6px 15px 10px 48px !important; background: transparent !important; border: none !important;">
+                        <ul style="list-style: none; padding-left: 0; margin-bottom: 0;">
+                            {% for category_child in category.category_set.all %}
+                                <li style="margin-bottom: 8px;">
+                                    <a href="{% url 'brands' category_name=category_child.name %}" style="color: #718096 !important; font-size: 13px !important; font-weight: 500 !important; display: block; transition: all 0.2s ease; text-decoration: none !important;">
+                                        • {{category_child.description}}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
