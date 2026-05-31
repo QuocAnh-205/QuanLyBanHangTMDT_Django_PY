@@ -8,6 +8,44 @@
 	{% load custom_filter %}
 
 
+	<style>
+		/* Price range Display Badge */
+		#price-range-display {
+			display: flex !important;
+			justify-content: center !important;
+			align-items: center !important;
+			gap: 6px !important;
+			color: #E6850B !important;
+			font-size: 13px !important;
+			font-weight: 600 !important;
+			margin-top: 15px !important;
+			background: rgba(254, 152, 15, 0.05) !important;
+			border: 1px solid rgba(254, 152, 15, 0.12) !important;
+			padding: 8px 12px !important;
+			border-radius: 30px !important;
+			text-align: center !important;
+			box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.01) !important;
+		}
+		
+		.price-range .well {
+			background: white !important;
+			border: 1px solid rgba(0, 0, 0, 0.04) !important;
+			border-radius: 18px !important;
+			box-shadow: 0 5px 20px rgba(0, 0, 0, 0.02) !important;
+			padding: 20px 15px !important;
+		}
+		
+		/* Smooth Fading for AJAX Loading Grid */
+		.features_items > div {
+			transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+		}
+		
+		.features-loading {
+			opacity: 0.35 !important;
+			pointer-events: none !important;
+		}
+	</style>
+
 	<script>
 		$(document).ready(function(){
 			$("#mouse").mouseenter(function(){
@@ -35,20 +73,23 @@
 					var minVal = values[0];
 					var maxVal = values[1];
 					
+					var $grid = $(".features_items > div");
+					$grid.addClass("features-loading");
+					
 					$.ajax({
 						type: "GET",
-						url: "{% url 'index' %}",
+						url: "{% url 'filter_products_api' %}",
 						data: {
 							min_price: minVal,
 							max_price: maxVal
 						},
-						headers: {
-							"X-Requested-With": "XMLHttpRequest"
-						},
 						success: function(data) {
-							$(".features_items > div").html(data.html);
+							setTimeout(function() {
+								$grid.html(data.html).removeClass("features-loading");
+							}, 200); // 200ms delay to make the transition look professional and clean
 						},
 						error: function(xhr) {
+							$grid.removeClass("features-loading");
 							console.error("Lỗi lọc sản phẩm:", xhr);
 						}
 					});
@@ -171,7 +212,11 @@
 							<h2>Price Range</h2>
 							<div class="well text-center">
 								<input type="text" class="span2" value="" data-slider-min="{{minimum_price}}" data-slider-max="{{maximum_price}}" data-slider-step="100000" data-slider-value="[{{minimum_price}},{{maximum_price}}]" id="sl2" ><br />
-								<b class="pull-left" id="min-price-lbl">{{minimum_price|intcomma}} VND</b> <b class="pull-right" id="max-price-lbl">{{maximum_price|intcomma}} VND</b>
+								<div id="price-range-display">
+									<span id="min-price-lbl">{{minimum_price|intcomma}} VND</span>
+									<span> — </span>
+									<span id="max-price-lbl">{{maximum_price|intcomma}} VND</span>
+								</div>
 							</div>
 						</div><!--/price-range-->
 						

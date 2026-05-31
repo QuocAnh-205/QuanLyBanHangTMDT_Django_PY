@@ -8,6 +8,7 @@ urlpatterns = [
     re_path(r'^brand/(?P<category_name>[\w]+)$', views.brands, name = 'brands'),
     re_path(r'^product/(?P<product_id>[\d]+)$', views.view_product, name='view_product'),
     path('product/<int:product_id>/api/', views.product_detail_api, name='product_detail_api'),
+    path('api/products/filter/', views.filter_products, name='filter_products_api'),
     re_path(r'^add/(?P<product_id>[\d]+)$', views.add_product_to_cart, name='add_product_to_cart'),
     re_path(r'^show-cart$', views.show_cart, name='show_cart'),
     # re_path(r'^change/(?P<action>[a-z]+)/(?P<action>[0-9]+)$', views.add_product_to_cart, name='add_product_to_cart'),

@@ -400,3 +400,20 @@ def product_detail(request, product_id):
         'reviews': reviews,
         'review_form': form,
     })
+
+def filter_products(request):
+    products = Product.objects.filter(status=True)
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    if min_price and max_price:
+        try:
+            products = products.filter(price__gte=int(min_price), price__lte=int(max_price))
+        except ValueError:
+            pass
+            
+    html = render_to_string(
+        template_name='product/product_list_partial.html',
+        context={'products': products, 'user': request.user},
+        request=request
+    )
+    return JsonResponse({'html': html})
